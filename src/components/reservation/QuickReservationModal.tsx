@@ -14,7 +14,7 @@ export const QuickReservationModal: React.FC<QuickReservationModalProps> = ({
 }) => {
   const [selectedLocation, setSelectedLocation] = useState(RESTAURANT_LOCATIONS[0].id);
   const [partySize, setPartySize] = useState('2');
-  const [date, setDate] = useState('2026-10-01');
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [timeSlot, setTimeSlot] = useState('19:30');
   const [guestName, setGuestName] = useState('');
   const [phone, setPhone] = useState('');

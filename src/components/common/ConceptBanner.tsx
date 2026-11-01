@@ -8,7 +8,7 @@ interface ConceptBannerProps {
 
 export const ConceptBanner: React.FC<ConceptBannerProps> = ({ onOpenDesignSystem, onDismiss }) => {
   return (
-    <aside aria-label="Concept Disclaimer" className="sticky top-0 bg-charcoal-900 border-b border-charcoal-800 text-ivory-200 text-xs px-4 py-2 z-50">
+    <aside aria-label="Concept Disclaimer" className="w-full bg-charcoal-900 border-b border-charcoal-800 text-ivory-200 text-xs px-4 py-2 relative z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 overflow-hidden text-ellipsis whitespace-nowrap">
           <span className="flex h-2 w-2 rounded-full bg-brick-500 animate-pulse shrink-0" />

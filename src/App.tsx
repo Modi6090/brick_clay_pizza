@@ -1,57 +1,34 @@
 import { useState, lazy, Suspense } from 'react';
-import { ConceptBanner } from './components/common/ConceptBanner';
+import { RouterProvider, useRouter } from './router';
 import { Navbar } from './components/layout/Navbar';
-import { Hero } from './components/home/Hero';
-import { SignaturePizzas } from './components/home/SignaturePizzas';
-import { CraftStory } from './components/home/CraftStory';
 import { Footer } from './components/layout/Footer';
 import { MobileStickyBar } from './components/layout/MobileStickyBar';
+import { HomePage } from './pages/HomePage';
+import { MenuPage } from './pages/MenuPage';
+import { AboutPage } from './pages/AboutPage';
+import { GalleryPage } from './pages/GalleryPage';
+import { ContactPage } from './pages/ContactPage';
 import { Layers, Eye } from 'lucide-react';
 
-// Lazy-loaded below-the-fold sections for code splitting
-const RestaurantMenuSection = lazy(() =>
-  import('./components/menu/RestaurantMenuSection').then((m) => ({ default: m.RestaurantMenuSection }))
-);
-const VisualGallerySection = lazy(() =>
-  import('./components/gallery/VisualGallerySection').then((m) => ({ default: m.VisualGallerySection }))
-);
-const ExperienceSection = lazy(() =>
-  import('./components/home/ExperienceSection').then((m) => ({ default: m.ExperienceSection }))
-);
-const LocationConversionSection = lazy(() =>
-  import('./components/home/LocationConversionSection').then((m) => ({ default: m.LocationConversionSection }))
-);
+// Lazy-loaded modals and dev tools
 const QuickReservationModal = lazy(() =>
   import('./components/reservation/QuickReservationModal').then((m) => ({ default: m.QuickReservationModal }))
-);
-const MenuModalPreview = lazy(() =>
-  import('./components/menu/MenuModalPreview').then((m) => ({ default: m.MenuModalPreview }))
 );
 const DesignSystemShowcase = lazy(() =>
   import('./components/design-system/DesignSystemShowcase').then((m) => ({ default: m.DesignSystemShowcase }))
 );
 
-// Minimal loading fallback
 const SectionFallback = () => (
   <div className="w-full py-24 flex items-center justify-center" aria-hidden="true">
     <div className="w-8 h-8 rounded-full border-2 border-brick-500 border-t-transparent animate-spin" />
   </div>
 );
 
-export function App() {
+function AppContent() {
+  const { currentPath } = useRouter();
   const [viewMode, setViewMode] = useState<'concept' | 'design-system'>('concept');
   const [isReservationOpen, setIsReservationOpen] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
-
-  const handleMenuClick = () => {
-    const menuSection = document.getElementById('menu');
-    if (menuSection) {
-      menuSection.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      setIsMenuOpen(true);
-    }
-  };
 
   if (viewMode === 'design-system') {
     return (
@@ -71,71 +48,32 @@ export function App() {
         Skip to main content
       </a>
 
-      {/* 1. Concept Disclaimer Header */}
-      {isBannerVisible && (
-        <ConceptBanner
-          onOpenDesignSystem={() => setViewMode('design-system')}
-          onDismiss={() => setIsBannerVisible(false)}
-        />
-      )}
-
-      {/* 2. Global Navigation */}
+      {/* 1 & 2. Global Navigation with integrated Concept Disclaimer */}
       <Navbar
         onOpenReservation={() => setIsReservationOpen(true)}
-        onOpenMenu={handleMenuClick}
+        isBannerVisible={isBannerVisible}
+        onOpenDesignSystem={() => setViewMode('design-system')}
+        onDismissBanner={() => setIsBannerVisible(false)}
       />
 
-      {/* Main Flow */}
+      {/* 3. Main Route Content */}
       <main id="main-content">
-        {/* 3. Cinematic Full-Screen Hero */}
-        <Hero
-          onOpenMenu={handleMenuClick}
-          onOpenReservation={() => setIsReservationOpen(true)}
-        />
-
-        {/* 4. Signature Pizzas Editorial Showcase */}
-        <SignaturePizzas
-          onOpenMenu={handleMenuClick}
-          onOpenReservation={() => setIsReservationOpen(true)}
-        />
-
-        {/* 5. The Craft Story (Dough → Sauce → Toppings → Fire) */}
-        <CraftStory />
-
-        {/* 6. Complete Restaurant Menu Experience */}
-        <Suspense fallback={<SectionFallback />}>
-          <RestaurantMenuSection
-            onOpenReservation={() => setIsReservationOpen(true)}
-          />
-        </Suspense>
-
-        {/* 7. Phase 7: Visual Gallery Section with Accessible Lightbox */}
-        <Suspense fallback={<SectionFallback />}>
-          <VisualGallerySection />
-        </Suspense>
-
-        {/* 8. Phase 8: Experience & Social Proof (Pillars, Ambiance, Community Sentiments, Social) */}
-        <Suspense fallback={<SectionFallback />}>
-          <ExperienceSection onOpenReservation={() => setIsReservationOpen(true)} />
-        </Suspense>
-
-        {/* 9. Phase 9: Location & Conversion Final Section */}
-        <Suspense fallback={<SectionFallback />}>
-          <LocationConversionSection
-            onOpenReservation={() => setIsReservationOpen(true)}
-            onOpenMenu={handleMenuClick}
-          />
-        </Suspense>
+        {currentPath === '/' && (
+          <HomePage onOpenReservation={() => setIsReservationOpen(true)} />
+        )}
+        {currentPath === '/menu' && (
+          <MenuPage onOpenReservation={() => setIsReservationOpen(true)} />
+        )}
+        {currentPath === '/about' && <AboutPage />}
+        {currentPath === '/gallery' && <GalleryPage />}
+        {currentPath === '/contact' && <ContactPage />}
       </main>
 
-      {/* Semantic Editorial Footer */}
-      <Footer />
+      {/* 4. Semantic Editorial Footer */}
+      <Footer onOpenReservation={() => setIsReservationOpen(true)} />
 
-      {/* 8. Mobile Sticky Bottom Action Bar: Menu | Order | Reserve */}
-      <MobileStickyBar
-        onOpenMenu={handleMenuClick}
-        onOpenReservation={() => setIsReservationOpen(true)}
-      />
+      {/* 5. Mobile Sticky Bottom Action Bar: Menu | Order | Reserve | Visit */}
+      <MobileStickyBar onOpenReservation={() => setIsReservationOpen(true)} />
 
       {/* Floating Design System Spec Switcher Pill */}
       <aside aria-label="Design System Spec Switcher" className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40">
@@ -151,13 +89,13 @@ export function App() {
           ) : (
             <>
               <Eye className="w-3.5 h-3.5 text-olive-400" />
-              <span>Back to Gallery</span>
+              <span>Back to Concept</span>
             </>
           )}
         </button>
       </aside>
 
-      {/* Interactive Reservation Modal */}
+      {/* Interactive Quick Reservation Modal */}
       {isReservationOpen && (
         <Suspense fallback={null}>
           <QuickReservationModal
@@ -166,21 +104,15 @@ export function App() {
           />
         </Suspense>
       )}
-
-      {/* Full Menu Modal Preview */}
-      {isMenuOpen && (
-        <Suspense fallback={null}>
-          <MenuModalPreview
-            isOpen={isMenuOpen}
-            onClose={() => setIsMenuOpen(false)}
-            onOpenReservation={() => {
-              setIsMenuOpen(false);
-              setIsReservationOpen(true);
-            }}
-          />
-        </Suspense>
-      )}
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <RouterProvider>
+      <AppContent />
+    </RouterProvider>
   );
 }
 

@@ -1,16 +1,23 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search, 
-  X, 
-  ExternalLink, 
-  Calendar, 
-  Flame, 
-  UtensilsCrossed,
-  Filter
+import {
+  Search,
+  X,
+  ExternalLink,
+  Calendar,
+  Sparkles,
+  ShoppingBag,
+  Info,
+  ChevronRight,
+  Flame
 } from 'lucide-react';
-import { MENU_CATEGORIES, FULL_MENU_ITEMS } from '../../data/menuData';
-import type { MenuCategoryId } from '../../types';
+import {
+  BRICK_AND_CLAY_CATEGORIES,
+  BRICK_AND_CLAY_MENU,
+} from '../../data/brickAndClayMenu';
+import { brickAndClayImages } from '../../data/brickAndClayImages';
+import { ORDERING_LINKS } from '../../data/brickAndClayLinks';
+import type { BrickAndClayCategoryId, BrickAndClayMenuItem } from '../../types';
 import { Button } from '../ui/Button';
 
 interface RestaurantMenuSectionProps {
@@ -20,25 +27,33 @@ interface RestaurantMenuSectionProps {
 export const RestaurantMenuSection: React.FC<RestaurantMenuSectionProps> = ({
   onOpenReservation,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<MenuCategoryId>('pizza');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<BrickAndClayCategoryId>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [dietaryFilter, setDietaryFilter] = useState<'all' | 'veg' | 'non-veg'>('all');
+  const [activeDish, setActiveDish] = useState<BrickAndClayMenuItem | null>(null);
   const categoryNavRef = useRef<HTMLDivElement>(null);
 
-  // Active category info
-  const currentCategoryInfo = useMemo(() => {
-    return MENU_CATEGORIES.find((cat) => cat.id === selectedCategory) || MENU_CATEGORIES[0];
-  }, [selectedCategory]);
+  // Close modal with Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveDish(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Filtered menu items
   const filteredItems = useMemo(() => {
-    return FULL_MENU_ITEMS.filter((item) => {
-      // 1. Category match (if search is empty)
-      const matchesCategory = searchQuery.trim() ? true : item.category === selectedCategory;
+    return BRICK_AND_CLAY_MENU.filter((item) => {
+      // 1. Category match
+      const matchesCategory =
+        selectedCategoryId === 'all' || item.categoryId === selectedCategoryId;
 
       // 2. Dietary filter match
       const matchesDietary =
-        dietaryFilter === 'all' ? true : item.dietary === dietaryFilter;
+        dietaryFilter === 'all' || item.dietary === dietaryFilter;
 
       // 3. Search query match
       const q = searchQuery.toLowerCase().trim();
@@ -47,319 +62,572 @@ export const RestaurantMenuSection: React.FC<RestaurantMenuSectionProps> = ({
         item.name.toLowerCase().includes(q) ||
         (item.italianName && item.italianName.toLowerCase().includes(q)) ||
         item.description.toLowerCase().includes(q) ||
-        item.ingredients.some((ing) => ing.toLowerCase().includes(q));
+        (item.ingredients && item.ingredients.some((ing) => ing.toLowerCase().includes(q)));
 
       return matchesCategory && matchesDietary && matchesSearch;
     });
-  }, [selectedCategory, dietaryFilter, searchQuery]);
+  }, [selectedCategoryId, dietaryFilter, searchQuery]);
+
+  // Count items per category
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: BRICK_AND_CLAY_MENU.length };
+    BRICK_AND_CLAY_MENU.forEach((item) => {
+      counts[item.categoryId] = (counts[item.categoryId] || 0) + 1;
+    });
+    return counts;
+  }, []);
 
   return (
     <section
       id="menu"
-      aria-label="Brick & Clay Culinary Menu"
-      className="py-24 sm:py-32 bg-background-primary text-typography-primary relative border-t border-clay-300/80"
+      aria-label="Brick & Clay Real Culinary Menu"
+      className="py-20 sm:py-28 lg:py-32 bg-background-primary text-typography-primary relative border-t border-clay-300/80"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14 sm:mb-16 space-y-4">
+        {/* ============================================================== */}
+        {/* 1. SECTION EDITORIAL HEADER */}
+        {/* ============================================================== */}
+        <div className="max-w-3xl mb-12 sm:mb-16 space-y-4 text-center sm:text-left">
           <div className="inline-flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-brick-500" />
             <span className="editorial-caps text-xs text-brick-600 tracking-loose-caps font-semibold">
-              OUR COMPLETE KITCHEN MENU
+              THE COMPLETE REAL MENU
             </span>
           </div>
 
           <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-light text-charcoal-900 tracking-tight leading-[1.08]">
-            Artisanal Neapolitan &amp; <br className="hidden sm:inline" />
+            Made by fire. <br className="hidden sm:inline" />
             <span className="font-normal italic text-brick-600 font-serif">
-              Italian Kitchen.
+              Served with character.
             </span>
           </h2>
 
-          <p className="text-charcoal-600 text-base sm:text-lg font-light leading-relaxed max-w-2xl mx-auto">
-            Hand-stretched sourdough, cold-pressed olive oils, and slow-simmered sauces. Prepared fresh daily at our Sahid Nagar and Patia ovens.
+          <p className="text-charcoal-600 text-sm sm:text-base lg:text-lg font-light leading-relaxed max-w-2xl">
+            Explore authentic wood-fired Neapolitan pizzas, handmade folded calzones, al dente pastas, and artisan sides. Sourced from current Brick &amp; Clay kitchen listings.
           </p>
         </div>
 
         {/* ============================================================== */}
-        {/* CATEGORY NAVIGATION & FILTER CONTROLS */}
+        {/* 2. CATEGORY NAVIGATION TABS (Mobile Scrollable) */}
         {/* ============================================================== */}
-        <div className="space-y-6 mb-12">
-          
-          {/* Top Category Tabs (Keyboard accessible & touch friendly) */}
+        <div className="mb-8 space-y-4">
           <div
             ref={categoryNavRef}
             role="tablist"
             aria-label="Menu categories"
-            className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none sm:justify-center border-b border-clay-300/80"
+            className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0"
           >
-            {MENU_CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.id && !searchQuery.trim();
+            {/* "All" Tab */}
+            <button
+              role="tab"
+              aria-selected={selectedCategoryId === 'all'}
+              onClick={() => setSelectedCategoryId('all')}
+              className={`shrink-0 px-4 py-2.5 rounded-full text-xs uppercase tracking-editorial font-medium transition-all duration-200 flex items-center gap-2 focus-editorial ${
+                selectedCategoryId === 'all'
+                  ? 'bg-charcoal-900 text-ivory-50 shadow-subtle'
+                  : 'bg-clay-100/70 text-charcoal-700 hover:bg-clay-200 hover:text-charcoal-900'
+              }`}
+            >
+              <span>All Items</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                selectedCategoryId === 'all' ? 'bg-white/20 text-ivory-100' : 'bg-charcoal-200/60 text-charcoal-600'
+              }`}>
+                {categoryCounts['all']}
+              </span>
+            </button>
+
+            {/* Category Tabs */}
+            {BRICK_AND_CLAY_CATEGORIES.map((cat) => {
+              const isSelected = selectedCategoryId === cat.id;
+              const count = categoryCounts[cat.id] || 0;
               return (
                 <button
                   key={cat.id}
                   role="tab"
                   aria-selected={isSelected}
-                  onClick={() => {
-                    setSelectedCategory(cat.id);
-                    setSearchQuery(''); // Clear search on category tap for quick browsing
-                  }}
-                  className={`relative shrink-0 px-4 py-3 rounded-subtle text-xs uppercase tracking-editorial font-medium transition-all duration-200 focus-editorial ${
+                  onClick={() => setSelectedCategoryId(cat.id)}
+                  className={`shrink-0 px-4 py-2.5 rounded-full text-xs uppercase tracking-editorial font-medium transition-all duration-200 flex items-center gap-2 focus-editorial whitespace-nowrap ${
                     isSelected
-                      ? 'text-ivory-50 bg-charcoal-900 shadow-subtle'
-                      : 'text-charcoal-700 hover:text-charcoal-950 hover:bg-clay-100/70'
+                      ? 'bg-charcoal-900 text-ivory-50 shadow-subtle'
+                      : 'bg-clay-100/70 text-charcoal-700 hover:bg-clay-200 hover:text-charcoal-900'
                   }`}
                 >
                   <span>{cat.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    isSelected ? 'bg-white/20 text-ivory-100' : 'bg-charcoal-200/60 text-charcoal-600'
+                  }`}>
+                    {count}
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Search Bar & Dietary Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2">
+          {/* Search Bar & Dietary Filter Row */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
             
-            {/* Search Input with quick clear */}
+            {/* Search Input */}
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search dishes or ingredients (e.g., Truffle, Basil, Pesto)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search menu items"
-                className="w-full pl-10 pr-9 py-2.5 rounded-subtle bg-surface-primary border border-clay-300 text-xs sm:text-sm text-charcoal-900 placeholder:text-charcoal-400 focus:outline-none focus:border-brick-500 focus:ring-1 focus:ring-brick-500 transition-colors"
+                placeholder="Search dish, ingredients (e.g. truffle, burrata, pesto)..."
+                aria-label="Search menu dishes and ingredients"
+                className="w-full pl-10 pr-9 py-2.5 bg-surface-primary rounded-subtle border border-clay-300 text-xs text-charcoal-900 placeholder:text-charcoal-400 focus-editorial focus:border-brick-500 transition-colors shadow-subtle"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  aria-label="Clear search input"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 hover:text-charcoal-800 p-0.5"
+                  aria-label="Clear search query"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal-400 hover:text-charcoal-700 p-1"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Dietary Filter Buttons: All | Veg | Non-Veg */}
-            <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 bg-clay-100/70 p-1 rounded-subtle border border-clay-200">
-              <span className="text-[10px] text-charcoal-500 uppercase tracking-editorial px-2 hidden sm:inline-flex items-center gap-1">
-                <Filter className="w-3 h-3 text-charcoal-400" /> Filter:
-              </span>
-              {[
-                { id: 'all', label: 'All' },
-                { id: 'veg', label: 'Vegetarian' },
-                { id: 'non-veg', label: 'Non-Veg' },
-              ].map((filter) => (
-                <button
-                  key={filter.id}
-                  onClick={() => setDietaryFilter(filter.id as any)}
-                  className={`px-3 py-1.5 rounded-subtle text-xs font-sans font-medium transition-all ${
-                    dietaryFilter === filter.id
-                      ? 'bg-ivory-50 text-charcoal-900 shadow-subtle border border-clay-300 font-semibold'
-                      : 'text-charcoal-600 hover:text-charcoal-900'
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
+            {/* Dietary Toggle Pills */}
+            <div className="inline-flex items-center p-1 bg-clay-200/60 rounded-subtle border border-clay-300 self-start sm:self-auto">
+              <button
+                onClick={() => setDietaryFilter('all')}
+                className={`px-3 py-1.5 rounded-subtle text-xs font-sans font-medium transition-all ${
+                  dietaryFilter === 'all'
+                    ? 'bg-surface-primary text-charcoal-900 shadow-subtle'
+                    : 'text-charcoal-600 hover:text-charcoal-900'
+                }`}
+              >
+                All Diets
+              </button>
+              <button
+                onClick={() => setDietaryFilter('veg')}
+                className={`px-3 py-1.5 rounded-subtle text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
+                  dietaryFilter === 'veg'
+                    ? 'bg-surface-primary text-olive-800 shadow-subtle font-semibold'
+                    : 'text-charcoal-600 hover:text-charcoal-900'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-olive-600" />
+                <span>Veg</span>
+              </button>
+              <button
+                onClick={() => setDietaryFilter('non-veg')}
+                className={`px-3 py-1.5 rounded-subtle text-xs font-sans font-medium transition-all flex items-center gap-1.5 ${
+                  dietaryFilter === 'non-veg'
+                    ? 'bg-surface-primary text-brick-800 shadow-subtle font-semibold'
+                    : 'text-charcoal-600 hover:text-charcoal-900'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-brick-600" />
+                <span>Non-Veg</span>
+              </button>
             </div>
-
           </div>
-
         </div>
 
         {/* ============================================================== */}
-        {/* CURRENT CATEGORY BANNER (if no global search active) */}
+        {/* 3. MENU RESULTS GRID (Mobile-First Card Layout) */}
         {/* ============================================================== */}
-        {!searchQuery.trim() && (
-          <div className="mb-10 pb-4 border-b border-clay-300/80 flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-            <div>
-              <span className="editorial-caps text-[10px] text-brick-600 font-semibold block">
-                {currentCategoryInfo.italianTitle}
-              </span>
-              <h3 className="font-serif text-2xl sm:text-3xl font-medium text-charcoal-900 mt-0.5">
-                {currentCategoryInfo.label}
-              </h3>
-            </div>
-            <p className="text-xs sm:text-sm text-charcoal-500 font-light max-w-md sm:text-right">
-              {currentCategoryInfo.subtitle}
-            </p>
-          </div>
-        )}
-
-        {/* If search query is active, show query summary */}
-        {searchQuery.trim() && (
-          <div className="mb-8 flex items-center justify-between text-xs text-charcoal-600 border-b border-clay-300/80 pb-3">
-            <span>
-              Showing results for: <strong className="text-charcoal-900 font-semibold">"{searchQuery}"</strong> ({filteredItems.length} items found)
-            </span>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="text-brick-600 hover:underline uppercase text-[11px] font-sans tracking-editorial"
-            >
-              Reset Search
-            </button>
-          </div>
-        )}
-
-        {/* ============================================================== */}
-        {/* EDITORIAL MENU LAYOUT: Two Balanced Columns with Hairline Lines */}
-        {/* ============================================================== */}
-        <AnimatePresence mode="wait">
-          {filteredItems.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="py-16 text-center space-y-3 bg-surface-primary rounded-subtle border border-clay-300 p-8"
-            >
-              <UtensilsCrossed className="w-8 h-8 text-charcoal-400 mx-auto" />
-              <h4 className="font-serif text-2xl text-charcoal-900 font-medium">
-                No matching dishes found
-              </h4>
-              <p className="text-xs sm:text-sm text-charcoal-600 max-w-sm mx-auto font-light">
-                Try searching for another ingredient or reset your dietary filters to explore our full kitchen selection.
-              </p>
-              <div className="pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setDietaryFilter('all');
-                  }}
-                >
-                  View All Dishes
-                </Button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key={selectedCategory + searchQuery + dietaryFilter}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-x-14 gap-y-10"
-            >
-              {filteredItems.map((item) => (
-                <article
-                  key={item.id}
-                  className="group space-y-2.5 pb-6 border-b border-clay-300/80 transition-colors"
-                >
-                  {/* Dish Title & Dietary Marker */}
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-serif text-xl sm:text-2xl font-medium text-charcoal-900 group-hover:text-brick-600 transition-colors">
-                        {item.name}
-                      </h4>
-
-                      {/* Verified Dietary Indicator */}
-                      {item.dietary === 'veg' ? (
-                        <span
-                          className="inline-flex items-center justify-center w-3.5 h-3.5 rounded border border-olive-600 p-0.5"
-                          title="Vegetarian"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-olive-600" />
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center justify-center w-3.5 h-3.5 rounded border border-brick-700 p-0.5"
-                          title="Non-Vegetarian"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-brick-700" />
-                        </span>
-                      )}
-
-                      {/* Spicy icon if verified */}
-                      {item.spicy && (
-                        <span
-                          className="text-brick-600 flex items-center text-[10px] font-sans"
-                          title="Contains Chili Flakes / Piquant"
-                        >
-                          <Flame className="w-3 h-3 fill-current" />
-                        </span>
-                      )}
-                    </div>
-
-                    <span className="text-[11px] text-charcoal-400 font-sans tracking-editorial uppercase shrink-0">
-                      Fresh Daily
-                    </span>
-                  </div>
-
-                  {/* Italian Name Subtitle */}
-                  {item.italianName && (
-                    <span className="font-serif italic text-xs sm:text-sm text-charcoal-500 block">
-                      {item.italianName}
-                    </span>
-                  )}
-
-                  {/* Sensory Description */}
-                  <p className="text-xs sm:text-sm text-charcoal-600 leading-relaxed font-light">
-                    {item.description}
-                  </p>
-
-                  {/* Ingredient Pill Tags */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {item.ingredients.map((ing) => (
-                      <span
-                        key={ing}
-                        className="text-[10px] bg-clay-100 text-charcoal-700 px-2 py-0.5 rounded-subtle font-sans font-normal"
-                      >
-                        {ing}
-                      </span>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ============================================================== */}
-        {/* CONVERSION FOOTER BAR: Order Online & Reserve Table CTAs */}
-        {/* ============================================================== */}
-        <div className="mt-16 sm:mt-24 p-8 sm:p-12 rounded-subtle border border-clay-300 bg-surface-primary shadow-subtle flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-2 text-center md:text-left">
-            <span className="editorial-caps text-[10px] text-brick-600 font-semibold block">
-              DINE-IN OR HOME DELIVERY
-            </span>
-            <h3 className="font-serif text-2xl sm:text-3xl font-medium text-charcoal-900">
-              Ready to savor Brick &amp; Clay?
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-20 bg-surface-primary rounded-subtle border border-clay-300 p-8 space-y-3">
+            <Info className="w-8 h-8 text-brick-500 mx-auto" />
+            <h3 className="font-serif text-xl font-medium text-charcoal-900">
+              No matching menu items found
             </h3>
-            <p className="text-xs sm:text-sm text-charcoal-600 font-light max-w-lg">
-              Book an evening table at our Sahid Nagar or Patia dining rooms, or order fresh wood-fired delivery straight to your door.
+            <p className="text-xs text-charcoal-500 max-w-sm mx-auto">
+              We couldn't find any dishes matching "{searchQuery}". Try searching for another ingredient or reset your category filter.
             </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3.5 shrink-0 w-full md:w-auto">
             <Button
               variant="outline"
-              size="lg"
-              onClick={onOpenReservation}
-              icon={<Calendar className="w-4 h-4" />}
-              iconPosition="left"
-              className="w-full sm:w-auto justify-center"
+              size="sm"
+              onClick={() => {
+                setSearchQuery('');
+                setDietaryFilter('all');
+                setSelectedCategoryId('all');
+              }}
             >
-              RESERVE TABLE
+              Reset Filters
             </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {filteredItems.map((item) => {
+              const imgMeta = brickAndClayImages[item.id] || brickAndClayImages[item.id.replace('-2', '-2-0')] || null;
+              const displayImage = imgMeta?.image || (item.imageApproved && item.image ? item.image : null);
+              const hasVerifiedImage = Boolean(displayImage && (imgMeta?.verification === 'REAL_OFFICIAL' || imgMeta?.verification === 'REAL_RESTAURANT_PUBLISHED' || item.imageApproved));
+              const isVeg = item.dietary === 'veg';
 
+              return (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  onClick={() => setActiveDish(item)}
+                  className="group bg-surface-primary rounded-subtle border border-clay-300 hover:border-brick-400/80 shadow-subtle hover:shadow-elevated transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer"
+                >
+                  {/* Card Visual Header: Real photo or craft neutral placeholder */}
+                  {hasVerifiedImage && displayImage ? (
+                    <div className="relative aspect-[16/10] overflow-hidden bg-charcoal-950">
+                      <img
+                        src={displayImage}
+                        alt={`Brick & Clay ${item.name}`}
+                        loading="lazy"
+                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/60 via-transparent to-transparent pointer-events-none" />
+                      
+                      <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+                        {item.isSignature && (
+                          <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-charcoal-950/80 backdrop-blur-md border border-white/10 text-ivory-100 text-[10px] font-sans uppercase tracking-editorial">
+                            <Flame className="w-3 h-3 text-brick-400" />
+                            <span>Signature</span>
+                          </div>
+                        )}
+                        <span className="editorial-caps text-[9px] text-ivory-200 bg-charcoal-950/80 px-2 py-0.5 rounded-full backdrop-blur-sm border border-white/10">
+                          {imgMeta?.verification === 'REAL_OFFICIAL' ? 'Official' : 'Restaurant Photo'}
+                        </span>
+                      </div>
+
+                      <div className="absolute bottom-3 right-3 z-10">
+                        <span className="px-2.5 py-1 rounded-md bg-charcoal-950/90 text-ivory-50 text-xs font-mono font-semibold border border-white/10">
+                          {item.price ? `₹${item.price}` : 'Ask Restaurant'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative p-4 sm:p-5 bg-clay-100/50 border-b border-clay-200 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {/* Dietary Symbol Pill */}
+                        <span
+                          className={`inline-flex items-center justify-center w-3.5 h-3.5 border rounded-sm ${
+                            isVeg ? 'border-emerald-600' : 'border-rose-600'
+                          }`}
+                          title={isVeg ? 'Vegetarian' : 'Non-Vegetarian'}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isVeg ? 'bg-emerald-600' : 'bg-rose-600'
+                            }`}
+                          />
+                        </span>
+                        <span className="editorial-caps text-[10px] text-charcoal-500">
+                          {item.category}
+                        </span>
+                        {item.isSignature && (
+                          <span className="editorial-caps text-[9px] text-brick-600 font-semibold bg-brick-100/80 px-1.5 py-0.5 rounded">
+                            Signature
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="editorial-caps text-[9px] text-charcoal-400 font-mono bg-clay-200/60 px-2 py-0.5 rounded hidden sm:inline">
+                          Verified Recipe
+                        </span>
+                        <span className="font-mono text-sm font-semibold text-charcoal-900">
+                          {item.price ? `₹${item.price}` : 'Ask Restaurant'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Card Body Content */}
+                  <div className="p-5 sm:p-6 space-y-3 flex-1 flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-serif text-lg sm:text-xl font-medium text-charcoal-900 group-hover:text-brick-600 transition-colors">
+                          {item.name}
+                        </h3>
+                        {hasVerifiedImage && (
+                          <span
+                            className={`shrink-0 inline-flex items-center justify-center w-3.5 h-3.5 border rounded-sm mt-1 ${
+                              isVeg ? 'border-emerald-600' : 'border-rose-600'
+                            }`}
+                            title={isVeg ? 'Vegetarian' : 'Non-Vegetarian'}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                isVeg ? 'bg-emerald-600' : 'bg-rose-600'
+                              }`}
+                            />
+                          </span>
+                        )}
+                      </div>
+
+                      {item.italianName && (
+                        <p className="font-serif italic text-xs text-charcoal-500">
+                          {item.italianName}
+                        </p>
+                      )}
+
+                      <p className="text-xs sm:text-sm text-charcoal-600 font-light leading-relaxed line-clamp-3">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    {/* Bottom row: Ingredients preview + View Action */}
+                    <div className="pt-3 border-t border-clay-200/80 flex items-center justify-between">
+                      <span className="text-[11px] text-charcoal-400 font-light">
+                        {item.ingredients ? `${item.ingredients.length} verified ingredients` : 'Kitchen Special'}
+                      </span>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDish(item);
+                        }}
+                        className="text-xs uppercase tracking-editorial font-medium text-brick-600 group-hover:text-brick-700 flex items-center gap-1 focus-editorial"
+                      >
+                        <span>View dish</span>
+                        <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* 4. BOTTOM CTAS & ORDERING RIBBON */}
+        {/* ============================================================== */}
+        <div className="mt-16 sm:mt-20 p-8 sm:p-12 rounded-subtle bg-charcoal-950 text-ivory-100 border border-charcoal-800 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-2 text-brick-400">
+              <ShoppingBag className="w-4 h-4" />
+              <span className="editorial-caps text-xs tracking-loose-caps font-semibold">
+                READY TO ORDER ONLINE?
+              </span>
+            </div>
+            <h3 className="font-serif text-2xl sm:text-3xl font-light text-ivory-50">
+              Fresh wood-fired sourdough delivered to your doorstep.
+            </h3>
+            <p className="text-xs sm:text-sm text-charcoal-400 font-light">
+              Order directly via Swiggy or Zomato from our Saheed Nagar and Patia outlets across Bhubaneswar.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto shrink-0">
             <a
-              href="https://www.zomato.com/bhubaneswar"
+              href={ORDERING_LINKS.zomatoSahidNagar}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-7 py-3.5 rounded-subtle bg-brick-500 hover:bg-brick-600 active:bg-brick-700 text-ivory-50 text-xs sm:text-sm uppercase tracking-editorial font-semibold shadow-subtle hover:shadow-elevated transition-all flex items-center justify-center gap-2 focus-editorial"
+              className="w-full sm:w-auto px-6 py-3 rounded-subtle bg-brick-500 hover:bg-brick-600 text-ivory-50 text-xs uppercase tracking-editorial font-semibold transition-all flex items-center justify-center gap-2 focus-editorial shadow-elevated"
             >
-              <span>ORDER ONLINE</span>
-              <ExternalLink className="w-4 h-4" />
+              <span>Order on Zomato</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+
+            <a
+              href={ORDERING_LINKS.swiggySahidNagar}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-6 py-3 rounded-subtle bg-charcoal-900 hover:bg-charcoal-800 text-ivory-100 border border-charcoal-700 hover:border-brick-500 text-xs uppercase tracking-editorial font-semibold transition-all flex items-center justify-center gap-2 focus-editorial"
+            >
+              <span>Order on Swiggy</span>
+              <ExternalLink className="w-3.5 h-3.5" />
             </a>
           </div>
         </div>
 
       </div>
+
+      {/* ============================================================== */}
+      {/* 5. DISH DETAIL MODAL / BOTTOM SHEET (Mobile Friendly) */}
+      {/* ============================================================== */}
+      <AnimatePresence>
+        {activeDish && (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-charcoal-950/80 backdrop-blur-md"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dish-modal-title"
+          >
+            {/* Backdrop click to close */}
+            <div
+              className="absolute inset-0"
+              onClick={() => setActiveDish(null)}
+              aria-hidden="true"
+            />
+
+            <motion.div
+              initial={{ y: '100%', opacity: 0.5 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+              className="relative w-full max-w-2xl bg-surface-primary rounded-t-2xl sm:rounded-subtle border border-clay-300 shadow-float overflow-hidden z-10 max-h-[90vh] flex flex-col"
+            >
+              {/* Top Close Button */}
+              <button
+                onClick={() => setActiveDish(null)}
+                aria-label="Close dish details"
+                className="absolute top-4 right-4 z-30 p-2 rounded-full bg-charcoal-950/70 text-ivory-100 hover:bg-charcoal-900 transition-colors focus-editorial backdrop-blur-sm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Dish Visual Header */}
+              {(() => {
+                const activeDishMeta = activeDish ? (brickAndClayImages[activeDish.id] || brickAndClayImages[activeDish.id.replace('-2', '-2-0')] || null) : null;
+                const activeDishImage = activeDishMeta?.image || (activeDish.imageApproved && activeDish.image ? activeDish.image : null);
+                const hasActiveVerifiedImage = Boolean(activeDishImage && (activeDishMeta?.verification === 'REAL_OFFICIAL' || activeDishMeta?.verification === 'REAL_RESTAURANT_PUBLISHED' || activeDish.imageApproved));
+
+                if (hasActiveVerifiedImage && activeDishImage) {
+                  return (
+                    <div className="relative h-64 sm:h-72 w-full bg-charcoal-950 shrink-0">
+                      <img
+                        src={activeDishImage}
+                        alt={`Brick & Clay ${activeDish.name}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-charcoal-950/80 via-transparent to-transparent" />
+                      
+                      <div className="absolute top-4 left-4 z-20">
+                        <span className="editorial-caps text-[10px] text-ivory-100 bg-charcoal-950/80 px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10">
+                          {activeDishMeta?.verification === 'REAL_OFFICIAL' ? 'Official Photo' : 'Restaurant Catalog Photo'}
+                        </span>
+                      </div>
+
+                      <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                        <div>
+                          <span className="editorial-caps text-[10px] text-brick-300 font-semibold block mb-1">
+                            {activeDish.category}
+                          </span>
+                          <h3
+                            id="dish-modal-title"
+                            className="font-serif text-2xl sm:text-3xl font-medium text-ivory-50"
+                          >
+                            {activeDish.name}
+                          </h3>
+                        </div>
+
+                        <span className="font-mono text-xl font-semibold text-ivory-50 bg-charcoal-900/90 px-3 py-1 rounded-md border border-white/10">
+                          {activeDish.price ? `₹${activeDish.price}` : 'Ask Restaurant'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="p-6 sm:p-8 bg-charcoal-950 text-ivory-100 border-b border-charcoal-800 shrink-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`inline-flex items-center justify-center w-3.5 h-3.5 border rounded-sm ${
+                          activeDish.dietary === 'veg' ? 'border-emerald-500' : 'border-rose-500'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            activeDish.dietary === 'veg' ? 'bg-emerald-500' : 'bg-rose-500'
+                          }`}
+                        />
+                      </span>
+                      <span className="editorial-caps text-[10px] text-brick-400 font-semibold">
+                        {activeDish.category}
+                      </span>
+                      <span className="text-[10px] text-charcoal-400 font-mono">
+                        &bull; Photo Pending Shoot
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline justify-between gap-4">
+                      <h3
+                        id="dish-modal-title"
+                        className="font-serif text-2xl sm:text-3xl font-medium text-ivory-50"
+                      >
+                        {activeDish.name}
+                      </h3>
+                      <span className="font-mono text-xl font-semibold text-brick-400 shrink-0">
+                        {activeDish.price ? `₹${activeDish.price}` : 'Ask Restaurant'}
+                      </span>
+                    </div>
+
+                    {activeDish.italianName && (
+                      <p className="font-serif italic text-sm text-charcoal-400 mt-1">
+                        {activeDish.italianName}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Scrollable Dish Details Body */}
+              <div className="p-6 sm:p-8 space-y-6 overflow-y-auto">
+                {/* Real Description */}
+                <div className="space-y-1.5">
+                  <span className="editorial-caps text-[10px] text-charcoal-400 block font-mono">
+                    KITCHEN DESCRIPTION
+                  </span>
+                  <p className="text-sm sm:text-base text-charcoal-800 font-light leading-relaxed">
+                    {activeDish.description}
+                  </p>
+                </div>
+
+                {/* Ingredients Pill Badges */}
+                {activeDish.ingredients && activeDish.ingredients.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-clay-200">
+                    <span className="editorial-caps text-[10px] text-charcoal-400 block font-mono">
+                      VERIFIED INGREDIENTS
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {activeDish.ingredients.map((ing) => (
+                        <span
+                          key={ing}
+                          className="px-2.5 py-1 rounded-subtle bg-clay-100 border border-clay-200 text-charcoal-800 text-xs font-sans"
+                        >
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Source Verification Badge */}
+                <div className="p-3 bg-clay-100/60 rounded-subtle border border-clay-200/80 flex items-center justify-between text-xs text-charcoal-500">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-brick-600" />
+                    <span>Verified Recipe &bull; {activeDish.source}</span>
+                  </div>
+                  <span className="editorial-caps text-[9px] text-charcoal-400 font-mono">
+                    Authentic Italian Bake
+                  </span>
+                </div>
+
+                {/* Action Conversion Buttons */}
+                <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <a
+                    href={ORDERING_LINKS.zomatoSahidNagar}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-3 rounded-subtle bg-brick-500 hover:bg-brick-600 text-ivory-50 text-xs uppercase tracking-editorial font-semibold transition-all flex items-center justify-center gap-2 focus-editorial shadow-subtle text-center"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Order Online</span>
+                    <ExternalLink className="w-3 h-3 opacity-70" />
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      setActiveDish(null);
+                      onOpenReservation();
+                    }}
+                    className="px-5 py-3 rounded-subtle bg-charcoal-900 hover:bg-charcoal-800 text-ivory-50 text-xs uppercase tracking-editorial font-semibold transition-all flex items-center justify-center gap-2 focus-editorial"
+                  >
+                    <Calendar className="w-4 h-4 text-brick-400" />
+                    <span>Reserve Table</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

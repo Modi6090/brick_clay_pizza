@@ -1,30 +1,40 @@
 import type { LocationInfo, MenuItemPreview, CraftPillar } from '../types';
+import {
+  OFFICIAL_WEBSITE_URL,
+  INSTAGRAM_URL,
+  INSTAGRAM_HANDLE,
+  ORDERING_LINKS,
+  OUTLETS,
+} from './brickAndClayLinks';
+import { SIGNATURE_PICKS } from './brickAndClayMenu';
+
+export { OFFICIAL_WEBSITE_URL, INSTAGRAM_URL, INSTAGRAM_HANDLE, ORDERING_LINKS, OUTLETS };
 
 export const RESTAURANT_LOCATIONS: LocationInfo[] = [
   {
-    id: 'sahid-nagar',
-    name: 'Brick & Clay — Sahid Nagar',
-    area: 'Sahid Nagar',
-    address: 'Bhabani Mall (Inox Block), Sahid Nagar',
-    landmark: 'Opposite Rama Devi Women\'s University Road',
-    phone: '+91 674 254 8920',
-    timings: '12:00 PM – 10:45 PM Daily',
-    googleMapsUrl: 'https://maps.google.com/?q=Brick+and+Clay+Sahid+Nagar+Bhubaneswar',
-    swiggyUrl: 'https://www.swiggy.com/city/bhubaneswar',
-    zomatoUrl: 'https://www.zomato.com/bhubaneswar',
+    id: 'saheed-nagar',
+    name: 'Brick & Clay — Saheed Nagar',
+    area: 'Saheed Nagar',
+    address: 'C-3, Ground Floor, Inox Block, BMC Bhawani Mall, Saheed Nagar',
+    landmark: 'Bhubaneswar, Odisha 751007',
+    phone: '+91 79784 45822',
+    timings: '12:00 PM – 10:30 PM Daily',
+    googleMapsUrl: 'https://maps.google.com/?q=Brick+and+Clay+Saheed+Nagar+Bhubaneswar',
+    swiggyUrl: ORDERING_LINKS.swiggySahidNagar,
+    zomatoUrl: ORDERING_LINKS.zomatoSahidNagar,
     isFlagship: true,
   },
   {
     id: 'patia',
-    name: 'Brick & Clay — Patia',
-    area: 'Patia / KIIT Road',
-    address: 'KIIT Road, Patia',
-    landmark: 'Near KIIT University Campus',
-    phone: '+91 674 272 1430',
-    timings: '12:30 PM – 11:00 PM Daily',
-    googleMapsUrl: 'https://maps.google.com/?q=Brick+and+Clay+Patia+Bhubaneswar',
-    swiggyUrl: 'https://www.swiggy.com/city/bhubaneswar',
-    zomatoUrl: 'https://www.zomato.com/bhubaneswar',
+    name: 'Brick & Clay — KIIT Square, Patia',
+    area: 'Patia / KIIT Square',
+    address: 'Plot No. 516/1755, A/2, Maruti Villa, 1st Floor, KIIT Square, Patia',
+    landmark: 'PS-Infocity, Bhubaneswar, Odisha 751024',
+    phone: '+91 78731 90926',
+    timings: '12:00 PM – 10:30 PM Daily',
+    googleMapsUrl: 'https://maps.google.com/?q=Brick+and+Clay+KIIT+Square+Patia+Bhubaneswar',
+    swiggyUrl: ORDERING_LINKS.swiggySahidNagar,
+    zomatoUrl: ORDERING_LINKS.zomatoSahidNagar,
     isFlagship: false,
   },
 ];
@@ -50,45 +60,17 @@ export const CRAFT_PILLARS: CraftPillar[] = [
   },
 ];
 
-export const SIGNATURE_PREVIEWS: MenuItemPreview[] = [
-  {
-    id: 'margherita-2',
-    name: 'Margherita 2.0',
-    italianName: 'La Vera Margherita',
-    category: 'pizza',
-    description: 'San Marzano tomato pulp, fresh buffalo mozzarella, hand-torn sweet basil, cold-pressed extra virgin olive oil on blistered sourdough.',
-    dietary: 'veg',
-    isSignature: true,
-    ingredients: ['San Marzano Tomato', 'Fior di Latte Mozzarella', 'Fresh Basil', 'EVOO'],
-  },
-  {
-    id: 'fab-di-fungo',
-    name: 'Fab di Fungo',
-    italianName: 'Funghi Selvatici & Tartufo',
-    category: 'pizza',
-    description: 'Caramelized wild mushrooms, roasted garlic crema, mozzarella, thyme sprigs, and an aromatic drizzle of black truffle oil.',
-    dietary: 'veg',
-    isSignature: true,
-    ingredients: ['Wild Mushrooms', 'Truffle Oil', 'Fior di Latte', 'Roasted Garlic Crema'],
-  },
-  {
-    id: 'chilli-spinaci',
-    name: 'Chilli Spinaci',
-    italianName: 'Spinaci & Peperoncino',
-    category: 'pizza',
-    description: 'Tuscan sautéed baby spinach, charred bird\'s eye chili flakes, ricotta clouds, confit garlic, and smoked scamorza cheese.',
-    dietary: 'veg',
-    isSignature: false,
-    ingredients: ['Baby Spinach', 'Crushed Chili', 'Smoked Scamorza', 'Garlic Confit'],
-  },
-  {
-    id: 'artisanal-calzone',
-    name: 'Wood-Fired Calzone Rustico',
-    italianName: 'Calzone Farcito al Forno',
-    category: 'calzone',
-    description: 'Folded sourdough pocket stuffed with creamy ricotta, melted provolone, herbed roasted fillings, brushed with garlic herb butter.',
-    dietary: 'veg',
-    isSignature: false,
-    ingredients: ['Folded Sourdough', 'Whole Milk Ricotta', 'Provolone', 'Herb Butter'],
-  }
-];
+export const SIGNATURE_PREVIEWS: MenuItemPreview[] = SIGNATURE_PICKS.map((item) => ({
+  id: item.id,
+  name: item.name,
+  italianName: item.italianName,
+  category: item.category,
+  description: item.description,
+  dietary: item.dietary,
+  price: item.price,
+  isSignature: item.isSignature,
+  ingredients: item.ingredients || [],
+  image: item.image,
+  imageApproved: item.imageApproved,
+  imageSource: item.imageSource,
+}));
